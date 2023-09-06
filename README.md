@@ -1,5 +1,5 @@
 # VaccinationSlotAPI
-Certainly! Here's a README.md file that provides instructions on how to use the sample APIs and endpoints you've created:
+Vaccination camp is available from 01-06-2023 to 31-06-2023
 
 ```markdown
 # Vaccine Slot Registration System
