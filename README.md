@@ -69,7 +69,7 @@ Request Body:
 Check available vaccine slots for a specific date by sending a GET request to `/slots/:date`.
 
 ```bash
-GET http://localhost:8884/slots/2023-09-10
+GET http://localhost:8884/slots/2023-06-06
 ```
 
 ### Register Vaccine Slot (POST)
