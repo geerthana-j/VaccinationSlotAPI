@@ -38,8 +38,8 @@ app.post('/api/register', async (req, res) => {
         // Phone number already exists, send a response indicating that the user should sign in
         res.status(200).json({ message: "Phone number already exists. Please sign in!" });
       }
-    } catch (error) { 
-console.log(error);
+    } catch (error) {
+      console.log(error);
       // Handle any potential errors
       res.status(500).json({ message: "Internal server error" });
     } finally {
@@ -75,8 +75,8 @@ app.post('/api/login', async (req, res) => {
           res.status(200).json({ message: "Login successfully!" });
         }
       }
-    } catch (error) { 
-console.log(error);
+    } catch (error) {
+      console.log(error);
       // Handle any potential errors
       res.status(500).json({ message: "Internal server error" });
     } finally {
@@ -91,11 +91,11 @@ console.log(error);
 
 app.get('/slots/:date', async (req, res) => {
   const date = req.params.date;
-
   try {
     const client = await mongoClient.connect();
     const collection = await client.db('runo').collection('slot_details');
     const availableSlots = await collection.findOne({ slotDate: new Date(date) });
+    console.log(availableSlots);
     const availabilityData = [];
     console.log(availableSlots);
     if (availableSlots.vaccinesAvailable > 0) {
@@ -110,8 +110,8 @@ app.get('/slots/:date', async (req, res) => {
     } else {
       res.status(200).json({ message: "Slots not available at this moment!" });
     }
-  } catch (error) { 
-console.log(error);
+  } catch (error) {
+    console.log(error);
     // Handle any potential errors
     res.status(500).json({ message: "Internal server error" });
   } finally {
@@ -120,156 +120,157 @@ console.log(error);
   }
 });
 app.post('/slot/register', async (req, res) => {
-    try {
-      const regSlot = req.body;
-      const { phoneNumber, slotDate, slotTime, vaccineStatus } = regSlot;
-  
-      if (phoneNumber && slotDate && slotTime && vaccineStatus) {
-        const client = await mongoClient.connect();
-        const slotCollection = client.db('runo').collection('slot_reg_details');
-        const detailsCollection = client.db('runo').collection('slot_details');
-  
-        const existsRecord = await slotCollection.findOne({ phoneNumber: phoneNumber });
-  
-        if ((vaccineStatus === 1 && !existsRecord) || (vaccineStatus === 2 && existsRecord)) {
-          // Convert slotDate to JavaScript Date object
-          const currentDate = new Date(slotDate);
-          // Calculate slot index based on slotTime
-          const slotIndex = calculateSlotIndex(slotTime);
-          // Update slot details
-          await detailsCollection.updateOne(
-            { slotDate: currentDate },
-            {
-              $inc: {
-                [`slotVaccines.${slotIndex}`]: -1, // Decrease slotVaccines count by 1
-                vaccinesAvailable: -1, // Decrease vaccinesAvailable count by 1
-              },
-            }
-          );
-  
-          regSlot.slotDate = currentDate;
-  
-          await slotCollection.insertOne(regSlot);
-          
-          res.status(200).json({ message: "Slot registered successfully" });
-        } else {
-          res.status(400).json({ message: "Can't register a slot" });
-        }
+  try {
+    const regSlot = req.body;
+    const { phoneNumber, slotDate, slotTime, vaccineStatus } = regSlot;
+
+    if (phoneNumber && slotDate && slotTime && vaccineStatus) {
+      const client = await mongoClient.connect();
+      const slotCollection = client.db('runo').collection('slot_reg_details');
+      const detailsCollection = client.db('runo').collection('slot_details');
+
+      const existsRecord = await slotCollection.findOne({ phoneNumber: phoneNumber });
+
+      if ((vaccineStatus === 1 && !existsRecord) || (vaccineStatus === 2 && existsRecord)) {
+        // Convert slotDate to JavaScript Date object
+        const currentDate = new Date(slotDate);
+        // Calculate slot index based on slotTime
+        const slotIndex = calculateSlotIndex(slotTime);
+        // Update slot details
+        await detailsCollection.updateOne(
+          { slotDate: currentDate },
+          {
+            $inc: {
+              [`slotVaccines.${slotIndex}`]: -1, // Decrease slotVaccines count by 1
+              vaccinesAvailable: -1, // Decrease vaccinesAvailable count by 1
+            },
+          }
+        );
+
+        regSlot.slotDate = currentDate;
+
+        await slotCollection.insertOne(regSlot);
+
+        res.status(200).json({ message: "Slot registered successfully" });
       } else {
-        res.status(400).json({ message: "Invalid request data" });
+        res.status(400).json({ message: "Can't register a slot" });
       }
-    } catch (error) {
-      // Handle any potential errors
-      console.error("Error in /slot/register:", error);
-      res.status(500).json({ message: "Internal server error" });
-    } finally {
-      // Close the MongoDB client connection
-    mongoClient.close();
+    } else {
+      res.status(400).json({ message: "Invalid request data" });
     }
-  });
-  
-  // Function to calculate slot index based on slotTime
+  } catch (error) {
+    // Handle any potential errors
+    console.error("Error in /slot/register:", error);
+    res.status(500).json({ message: "Internal server error" });
+  } finally {
+    // Close the MongoDB client connection
+    mongoClient.close();
+  }
+});
+
+// Function to calculate slot index based on slotTime
 // Function to calculate slot index based on slotTime
 function calculateSlotIndex(slotTime) {
-    const [hour, minute] = slotTime.split(':').map(Number);
-    console.log(hour, minute);
-    return (hour - 10) * 2 + (minute === 0 ? 0 : 1);
+  const [hour, minute] = slotTime.split(':').map(Number);
+  console.log(hour, minute);
+  return (hour - 10) * 2 + (minute === 0 ? 0 : 1);
 }
 
 app.patch('/slot/update', async (req, res) => {
-    try {
-        const updSlot = req.body;
-        const { phoneNumber, newSlotDate, newSlotTime, vaccineStatus } = updSlot;
+  try {
+    const updSlot = req.body;
+    const { phoneNumber, newSlotDate, newSlotTime, vaccineStatus } = updSlot;
 
-        if (phoneNumber && newSlotDate && newSlotTime && vaccineStatus) {
-            const client = await mongoClient.connect();
-            const slotCollection = client.db('runo').collection('slot_reg_details');
-            const detailsCollection = client.db('runo').collection('slot_details');
+    if (phoneNumber && newSlotDate && newSlotTime && vaccineStatus) {
+      const client = await mongoClient.connect();
+      const slotCollection = client.db('runo').collection('slot_reg_details');
+      const detailsCollection = client.db('runo').collection('slot_details');
 
-            const existsRecordCount = await slotCollection.countDocuments({
-                phoneNumber: phoneNumber,
-                vaccineStatus: vaccineStatus,
-            });
+      const existsRecordCount = await slotCollection.countDocuments({
+        phoneNumber: phoneNumber,
+        vaccineStatus: vaccineStatus,
+      });
 
-            if ((vaccineStatus === 1 && existsRecordCount === 1) || (vaccineStatus === 2 && existsRecordCount === 2)) {
-                // Convert the JavaScript date (newSlotDate) to a MongoDB ISODate object
-                const isoNewSlotDate = new Date(newSlotDate);
+      if ((vaccineStatus === 1 && existsRecordCount === 1) || (vaccineStatus === 2 && existsRecordCount === 2)) {
+        // Convert the JavaScript date (newSlotDate) to a MongoDB ISODate object
+        const isoNewSlotDate = new Date(newSlotDate);
 
-                // Calculate the slot index based on the newSlotTime
-                const newSlotIndex = calculateSlotIndex(newSlotTime);
-                console.log('new: ' + newSlotIndex);
+        // Calculate the slot index based on the newSlotTime
+        const newSlotIndex = calculateSlotIndex(newSlotTime);
+        console.log('new: ' + newSlotIndex);
 
-                // Find the existing slot for the provided phoneNumber and vaccineStatus
-                const existingSlot = await slotCollection.findOne({
-                    phoneNumber: phoneNumber,
-                    vaccineStatus: vaccineStatus,
-                });
+        // Find the existing slot for the provided phoneNumber and vaccineStatus
+        const existingSlot = await slotCollection.findOne({
+          phoneNumber: phoneNumber,
+          vaccineStatus: vaccineStatus,
+        });
 
-                if (existingSlot) {
-                    // Calculate the slot index for the existing slotTime
-                    const existingSlotIndex = calculateSlotIndex(existingSlot.slotTime);
-                    console.log('exist: ' + existingSlotIndex);
+        if (existingSlot) {
+          // Calculate the slot index for the existing slotTime
+          const existingSlotIndex = calculateSlotIndex(existingSlot.slotTime);
+          console.log('exist: ' + existingSlotIndex);
 
-                    // Update slot details for the previous slotDate and slotTime
-                    await detailsCollection.updateOne(
-                        { slotDate: existingSlot.slotDate },
-                        {
-                            $inc: {
-                                [`slotVaccines.${existingSlotIndex}`]: 1,
-                                vaccinesAvailable: 1, // Increase the count for the previous slot
-                            },
-                        }
-                    );
-                  
-
-                    // Update slot details for the new slotDate and slotTime
-                    await detailsCollection.updateOne(
-                        { slotDate: isoNewSlotDate },
-                        {
-                            $inc: {
-                                [`slotVaccines.${newSlotIndex}`]: -1,
-                                vaccinesAvailable: -1, // Decrease the count for the new slot
-                            },
-                        }
-                    );
-
-                    // Update the document(s) matching the conditions in the slot_reg_details collection
-                    const upt = await slotCollection.updateMany(
-                        {
-                            $and: [
-                                { phoneNumber: phoneNumber },
-                                { vaccineStatus: vaccineStatus },
-                                // Add more conditions as needed
-                            ],
-                        },
-                        { $set: { slotDate: isoNewSlotDate, slotTime: newSlotTime } }
-                    );
-
-                    console.log('Updating slot 3:');
-                    console.log(upt);
-
-                    res.status(200).json({ message: "Slot updated successfully" });
-                } else {
-                    res.status(400).json({ message: "Slot not found for the provided data" });
-                }
-            } else {
-                res.status(400).json({ message: "Can't update the slot" });
+          // Update slot details for the previous slotDate and slotTime
+          await detailsCollection.updateOne(
+            { slotDate: existingSlot.slotDate },
+            {
+              $inc: {
+                [`slotVaccines.${existingSlotIndex}`]: 1,
+                vaccinesAvailable: 1, // Increase the count for the previous slot
+              },
             }
+          );
+
+
+          // Update slot details for the new slotDate and slotTime
+          await detailsCollection.updateOne(
+            { slotDate: isoNewSlotDate },
+            {
+              $inc: {
+                [`slotVaccines.${newSlotIndex}`]: -1,
+                vaccinesAvailable: -1, // Decrease the count for the new slot
+              },
+            }
+          );
+
+          // Update the document(s) matching the conditions in the slot_reg_details collection
+          const upt = await slotCollection.updateMany(
+            {
+              $and: [
+                { phoneNumber: phoneNumber },
+                { vaccineStatus: vaccineStatus },
+                // Add more conditions as needed
+              ],
+            },
+            { $set: { slotDate: isoNewSlotDate, slotTime: newSlotTime } }
+          );
+
+          console.log('Updating slot 3:');
+          console.log(upt);
+
+          res.status(200).json({ message: "Slot updated successfully" });
         } else {
-            res.status(400).json({ message: "Invalid request data" });
+          res.status(400).json({ message: "Slot not found for the provided data" });
         }
-    } catch (error) {
-        // Handle any potential errors
-        console.error("Error in /slot/update:", error);
-        res.status(500).json({ message: "Internal server error" });
-    } finally {
-        // Close the MongoDB client connection
-        mongoClient.close();    }
+      } else {
+        res.status(400).json({ message: "Can't update the slot" });
+      }
+    } else {
+      res.status(400).json({ message: "Invalid request data" });
+    }
+  } catch (error) {
+    // Handle any potential errors
+    console.error("Error in /slot/update:", error);
+    res.status(500).json({ message: "Internal server error" });
+  } finally {
+    // Close the MongoDB client connection
+    mongoClient.close();
+  }
 });
 
-  
-  // Function to calculate slot index based on slotTim
-  
+
+// Function to calculate slot index based on slotTim
+
 app.post('/api/admin/login', async (req, res) => {
   const adminCredentials = req.body;
   const { username, password } = adminCredentials;
@@ -288,8 +289,8 @@ app.post('/api/admin/login', async (req, res) => {
         // Invalid admin credentials
         res.status(401).json({ message: "Invalid admin credentials" });
       }
-    } catch (error) { 
-console.log(error);
+    } catch (error) {
+      console.log(error);
       // Handle any potential errors
       res.status(500).json({ message: "Internal server error" });
     } finally {
@@ -345,8 +346,8 @@ app.get('/admin/registered-slots', async (req, res) => {
     const result = await collection.aggregate(pipeline).toArray();
 
     res.status(200).json({ joinedData: result });
-  } catch (error) { 
-console.log(error);
+  } catch (error) {
+    console.log(error);
     // Handle any potential errors
     res.status(500).json({ message: "Internal server error" });
   } finally {
@@ -362,10 +363,10 @@ app.get('/admin/slots/:date', async (req, res) => {
     const client = await mongoClient.connect();
     const db = client.db('runo');
     const collection = db.collection('slot_reg_details');
-
+    console.log(new Date(date))
     // Find documents matching the specified date
     const slotData = await collection.find({ slotDate: new Date(date) }).toArray();
-
+    console.log(slotData);
     if (slotData.length > 0) {
       // Calculate the counts for first dose, second dose, and total
       let firstDoseCount = 0;
@@ -373,10 +374,14 @@ app.get('/admin/slots/:date', async (req, res) => {
       let totalCount = 0;
 
       slotData.forEach((record) => {
-        firstDoseCount += record.firstDose || 0;
-        secondDoseCount += record.secondDose || 0;
-        totalCount += (record.firstDose || 0) + (record.secondDose || 0);
+
+        firstDoseCount += record.vaccineStatus == 1 || 0;
+        console.log(firstDoseCount);
+        secondDoseCount += record.vaccineStatus ==2 || 0;
+        console.log(secondDoseCount);
+        // totalCount += (record.firstDose || 0) + (record.secondDose || 0);
       });
+      totalCount = firstDoseCount + secondDoseCount;
 
       res.status(200).json({
         firstDose: firstDoseCount,
@@ -386,8 +391,8 @@ app.get('/admin/slots/:date', async (req, res) => {
     } else {
       res.status(404).json({ message: "No slot data found for the specified date" });
     }
-  } catch (error) { 
-console.log(error);
+  } catch (error) {
+    console.log(error);
     // Handle any potential errors
     res.status(500).json({ message: "Internal server error" });
   } finally {
